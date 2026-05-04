@@ -51,7 +51,7 @@ python tools/get_timelog_entries.py 7   # → frequency + today_ids
 python tools/get_board_workitems.py     # → active WIs
 ```
 
-### Step 3 — Calculate distribution
+### Step 3 — Calculate distribution (MANDATORY - DO NOT SKIP)
 1. **Filter frequency** — keep only WI IDs that appear in the active board list. Discard any WI from history that is no longer on the board (state changed, reassigned, etc.).
 2. **Select top 3** — take up to 3 WIs by filtered frequency score (highest first). Fill remaining slots with the top board WIs by priority (board order = priority ASC) that are not already selected.
 3. **Distribute 440 min**:
@@ -60,6 +60,8 @@ python tools/get_board_workitems.py     # → active WIs
      - WIs with no history get the minimum: 60 min
      - Subtract all minimums from 440; distribute the remainder proportionally by frequency score among WIs that have history
      - Round each to nearest 5 min; adjust the first WI to make total exactly 440 min
+
+**ALWAYS show the analysis and distribution plan to the user before proceeding.**
 
 ### Step 4 — Confirm with user
 For **today's date**: Present the plan before executing:
