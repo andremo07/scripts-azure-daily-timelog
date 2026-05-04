@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python tools/get_timelog_entries.py 7)",
+      "Bash(copy *)",
+      "Bash(python tools/get_board_workitems.py)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft SDKs\\\\Azure\\\\CLI2\\\\wbin\\\\az.cmd\" boards work-item show --id 237051 --org https://dev.azure.com/DrogariaAraujo --query \"fields.\\\\\"System.State\\\\\"\" -o tsv)",
+      "Bash(python -c ' *)",
+      "Bash(python tools/create_timelog_entry.py 220396 20 \"Agenda da operacao, negocio ou coorporativa\" \"Daily Team Integração 3.0\")",
+      "Bash(python tools/create_timelog_entry.py 220396 20 \"Demanda de operacao\" \"Lançamento Horas do dia\")",
+      "Bash(python tools/create_timelog_entry.py 237051 320 \"Atividade de projeto\" \"Implementacao\")",
+      "Bash(python tools/create_timelog_entry.py 238063 60 \"Atividade de projeto\" \"Implementacao\")",
+      "Bash(python tools/create_timelog_entry.py 230057 60 \"Atividade de projeto\" \"Implementacao\")",
+      "PowerShell(Get-ScheduledTask *)",
+      "Bash(schtasks /query /fo LIST)",
+      "Bash(schtasks /query /fo CSV)",
+      "PowerShell(Select-String *)",
+      "PowerShell(& \"$env:SystemRoot\\\\System32\\\\schtasks.exe\" /delete /tn \"DailyTimeLog\" /f 2>&1)",
+      "Bash(az account get-access-token *)",
+      "PowerShell(az account get-access-token *)",
+      "PowerShell(& 'C:\\\\Program Files \\(x86\\)\\\\Microsoft SDKs\\\\Azure\\\\CLI2\\\\wbin\\\\az.cmd' account get-access-token --query accessToken -o tsv)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
