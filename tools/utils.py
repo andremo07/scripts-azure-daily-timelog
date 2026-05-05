@@ -1,7 +1,6 @@
 import os
 import sys
 import subprocess
-import base64
 from dotenv import load_dotenv
 
 sys.stdout.reconfigure(encoding="utf-8")
@@ -12,7 +11,6 @@ load_dotenv()
 TENANT = os.environ["AZURE_DEVOPS_TENANT"]
 AZ = os.environ.get("AZ_PATH", "az")
 ORG = os.environ["AZURE_DEVOPS_ORG"]
-PAT = os.environ.get("AZURE_DEVOPS_PAT", "")
 
 _org_name = ORG.rstrip("/").split("/")[-1]
 TIMELOG_URL = (
@@ -23,8 +21,6 @@ TIMELOG_URL = (
 
 
 def get_bearer():
-    if PAT:
-        return None  # signal to use PAT auth instead
     result = subprocess.run(
         [AZ, "account", "get-access-token",
          "--resource", "499b84ac-1321-427f-aa17-267ca6975798",
@@ -44,19 +40,11 @@ def get_bearer():
 
 
 def auth_headers(bearer, json_body=False):
-    if PAT:
-        b64 = base64.b64encode(f":{PAT}".encode()).decode()
-        h = {
-            "Authorization": f"Basic {b64}",
-            "Accept": "application/json;api-version=3.1-preview.1",
-            "x-tfs-fedauthredirect": "Suppress",
-        }
-    else:
-        h = {
-            "Authorization": f"Bearer {bearer}",
-            "Accept": "application/json;api-version=3.1-preview.1",
-            "x-tfs-fedauthredirect": "Suppress",
-        }
+    h = {
+        "Authorization": f"Bearer {bearer}",
+        "Accept": "application/json;api-version=3.1-preview.1",
+        "x-tfs-fedauthredirect": "Suppress",
+    }
     if json_body:
         h["Content-Type"] = "application/json"
     return h
