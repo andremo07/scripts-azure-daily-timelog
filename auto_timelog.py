@@ -5,7 +5,9 @@ Logs to .tmp/timelog_YYYYMMDD.log
 """
 import os
 import sys
+import json
 import logging
+import anthropic
 from datetime import datetime
 from pathlib import Path
 
@@ -25,39 +27,65 @@ LOG_DIR = ROOT / ".tmp"
 LOG_DIR.mkdir(exist_ok=True)
 
 
-def _round5(n):
-    return round(n / 5) * 5
+def _distribute_with_claude(active_wis, frequency):
+    """Call Claude API to decide the 440-min variable distribution following daily_timelog.md."""
+    workflow = (ROOT / "workflows" / "daily_timelog.md").read_text(encoding="utf-8")
 
+    client = anthropic.Anthropic()
 
-def _distribute(active_wis, frequency):
-    """Return list of (wi_id, minutes, type, comment) for 440 min."""
-    if not active_wis:
-        return [(OVERHEAD_WI, 440, "Atividade de projeto", "Suporte para o time")]
+    payload = {
+        "active_wis": active_wis,
+        "frequency": {str(k): v for k, v in frequency.items()},
+    }
 
-    # Filter frequency to board WIs, pick top 3 by score
-    scored = sorted(active_wis, key=lambda w: frequency.get(w["id"], 0), reverse=True)
-    selected = scored[:3]
+    response = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=1024,
+        system=[
+            {
+                "type": "text",
+                "text": workflow,
+                "cache_control": {"type": "ephemeral"},
+            },
+            {
+                "type": "text",
+                "text": (
+                    "You are executing Step 3 (Calculate distribution) of the workflow above. "
+                    "Return ONLY a valid JSON array — no markdown fences, no explanation, no extra text. "
+                    "Each element must have exactly these keys: "
+                    "{\"wi_id\": <int>, \"minutes\": <int>, \"type\": <str>, \"comment\": <str>}. "
+                    "The array must cover exactly 440 minutes total."
+                ),
+            },
+        ],
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    f"Here is today's data:\n\n{json.dumps(payload, ensure_ascii=False, indent=2)}"
+                    f"\n\nReturn the JSON distribution array for 440 minutes."
+                ),
+            }
+        ],
+    )
 
-    with_hist = [w for w in selected if frequency.get(w["id"], 0) > 0]
-    no_hist   = [w for w in selected if frequency.get(w["id"], 0) == 0]
+    text = response.content[0].text.strip()
 
-    mins = {w["id"]: 60 for w in no_hist}
-    remaining = 440 - sum(mins.values())
+    # Strip markdown code fences if the model adds them despite instructions
+    if text.startswith("```"):
+        parts = text.split("```")
+        text = parts[1]
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip()
 
-    total_score = sum(frequency[w["id"]] for w in with_hist)
-    if with_hist and total_score > 0:
-        alloc = {w["id"]: _round5(frequency[w["id"]] / total_score * remaining) for w in with_hist}
-    else:
-        alloc = {}
+    entries = json.loads(text)
 
-    dist = {**mins, **alloc}
+    total = sum(e["minutes"] for e in entries)
+    if total != 440:
+        raise ValueError(f"Distribution total is {total}, expected 440")
 
-    # Fix rounding so total is exactly 440
-    diff = 440 - sum(dist.values())
-    if diff and selected:
-        dist[selected[0]["id"]] = dist.get(selected[0]["id"], 0) + diff
-
-    return [(w["id"], dist[w["id"]], "Atividade de projeto", "Implementacao") for w in selected]
+    return [(e["wi_id"], e["minutes"], e["type"], e["comment"]) for e in entries]
 
 
 def main():
@@ -95,8 +123,12 @@ def main():
     create_entry(OVERHEAD_WI, 20, "Demanda de operacao", "Lançamento Horas do dia")
     log.info(f"  WI#{OVERHEAD_WI} — Lançamento Horas do dia → 20min")
 
-    # Variable entries
-    entries = _distribute(active_wis, frequency)
+    # Variable entries — Claude decides distribution; fall back to overhead WI on any failure
+    try:
+        entries = _distribute_with_claude(active_wis, frequency)
+    except Exception as e:
+        log.error(f"Claude distribution failed, using fallback: {e}")
+        entries = [(OVERHEAD_WI, 440, "Atividade de projeto", "Suporte para o time")]
     for wi_id, minutes, etype, comment in entries:
         create_entry(wi_id, minutes, etype, comment)
         log.info(f"  WI#{wi_id} → {minutes}min")

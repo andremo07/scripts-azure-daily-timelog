@@ -77,6 +77,16 @@ class TestDistributeWithClaude(unittest.TestCase):
         with self.assertRaises(json.JSONDecodeError):
             _distribute_with_claude(active_wis, frequency)
 
+    @patch("auto_timelog.anthropic.Anthropic")
+    def test_empty_active_wis_still_calls_claude(self, MockAnthropic):
+        payload = [{"wi_id": 220396, "minutes": 440, "type": "Atividade de projeto", "comment": "Suporte para o time"}]
+        MockAnthropic.return_value.messages.create.return_value = _mock_response(payload)
+
+        result = _distribute_with_claude([], {})
+
+        assert result == [(220396, 440, "Atividade de projeto", "Suporte para o time")]
+        assert MockAnthropic.return_value.messages.create.called
+
 
 if __name__ == "__main__":
     unittest.main()
