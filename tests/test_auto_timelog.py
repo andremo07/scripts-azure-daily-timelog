@@ -74,7 +74,7 @@ class TestDistributeWithClaude(unittest.TestCase):
         active_wis = [{"id": 237051, "title": "A"}]
         frequency = {237051: 3}
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(json.JSONDecodeError):
             _distribute_with_claude(active_wis, frequency)
 
 
