@@ -51,6 +51,7 @@ def _distribute_with_claude(active_wis, frequency):
                 "type": "text",
                 "text": (
                     "You are executing Step 3 (Calculate distribution) of the workflow above. "
+                    "This is an automated execution context — skip Steps 4-6 (confirmation, delete, create). "
                     "Return ONLY a valid JSON array — no markdown fences, no explanation, no extra text. "
                     "Each element must have exactly these keys: "
                     "{\"wi_id\": <int>, \"minutes\": <int>, \"type\": <str>, \"comment\": <str>}. "
@@ -80,6 +81,9 @@ def _distribute_with_claude(active_wis, frequency):
         text = text.strip()
 
     entries = json.loads(text)
+
+    if not isinstance(entries, list):
+        raise ValueError(f"Expected JSON array from Claude, got {type(entries).__name__}")
 
     total = sum(e["minutes"] for e in entries)
     if total != 440:
